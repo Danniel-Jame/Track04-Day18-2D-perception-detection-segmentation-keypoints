@@ -1,0 +1,73 @@
+{
+  "progress": {
+    "box_iou": "ok",
+    "nms": "ok",
+    "batched_nms": "ok",
+    "mask_iou": "ok",
+    "polygon_to_mask": "ok",
+    "mask_to_yolo_seg": "ok",
+    "autolabel": "ok",
+    "oks": "ok",
+    "joint_angle": "ok",
+    "FLIP_IDX": "ok"
+  },
+  "latency": [
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.25",
+      "preprocess (ms)": 3.26,
+      "inference (ms)": 18.48,
+      "postprocess (ms)": 2.07,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-many + NMS, conf 0.001",
+      "preprocess (ms)": 1.62,
+      "inference (ms)": 8.52,
+      "postprocess (ms)": 1.27,
+      "số box": 203
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.25",
+      "preprocess (ms)": 2.3,
+      "inference (ms)": 12.61,
+      "postprocess (ms)": 0.52,
+      "số box": 5
+    },
+    {
+      "Cấu hình": "one-to-one NMS-free, conf 0.001",
+      "preprocess (ms)": 2.28,
+      "inference (ms)": 11.5,
+      "postprocess (ms)": 0.52,
+      "số box": 204
+    }
+  ],
+  "result_4b": {
+    "flip_idx": "giải phẫu",
+    "epochs": 40,
+    "imgsz": 640,
+    "Box mAP50-95": 0.9303488492063492,
+    "Pose mAP50": 0.995,
+    "Pose mAP50-95": 0.4573462529843696,
+    "train (phút)": 4.3
+  },
+  "result_4c": null,
+  "answers": {
+    "Q1": "",
+    "Q2": "Cột latency thay đổi nhiều nhất là head one-to-many + NMS, đặc biệt ở conf = 0.001. Khi conf thấp hoặc cảnh đông, có nhiều box ứng viên nên NMS phải xử lý nhiều duplicate hơn. Vì vậy NMS-free giúp giảm phần xử lý hậu kỳ, lợi ích rõ hơn, đặc biệt trên CPU/NPU vốn hạn chế tài nguyên hơn GPU.",
+    "Q3": "(a) Với IoU = 0.75 > 0.7, NMS sẽ loại một trong hai box. Giảm ngưỡng sẽ loại nhiều box trùng hơn nhưng có thể làm mất các đối tượng đứng sát nhau; tăng ngưỡng sẽ giữ nhiều box hơn nhưng dễ giữ các box trùng.\n\n(b) Head one-to-many giúp tạo nhiều dự đoán để cung cấp tín hiệu học phong phú trong quá trình train. Sau khi train, head one-to-one cho phép suy luận trực tiếp mà không cần NMS.",
+    "Q4": "(a) Đếm vùng liên thông có thể đếm thiếu khi một người bị tách thành nhiều mảnh hoặc bị che khuất, và đếm thừa khi một người bị chia thành nhiều vùng liên thông. Panoptic segmentation gán nhãn theo từng instance nên có thể phân biệt từng người riêng biệt.\n\n(b) Xe buýt bị gán phần lớn vào class `train`. Model nhầm vì semantic segmentation dự đoán class cho từng pixel và model không nhận diện chính xác hình dạng/ngữ cảnh của xe buýt trong ảnh này.",
+    "Q5": "(a) YOLO-seg dùng các prototype chung nên biên mask có thể thô, đặc biệt với vật thể nhỏ vì độ phân giải biểu diễn hạn chế. Mask R-CNN dự đoán mask 28×28 riêng cho từng RoI nên cũng có thể mất chi tiết, nhất là khi vật thể lớn vì mask phải được phóng lên kích thước lớn hơn.\n\n(b) Có thể nhiều mask YOLO cùng chọn một mask Mask R-CNN tốt nhất. Khi đó một mask Mask R-CNN có thể bị ghép với nhiều mask YOLO, làm mất các cặp đúng còn lại. Hungarian matching đảm bảo mỗi mask chỉ được ghép với tối đa một mask.",
+    "Q6": "(a) Điểm A cho mask gần như toàn bộ người (IoU ≈ 0.99), còn điểm B chỉ cho một mảnh nhỏ (IoU ≈ 0.00). Prompt bằng box an toàn hơn vì box cung cấp phạm vi đầy đủ của đối tượng, ít phụ thuộc vào vị trí chính xác của một điểm.\n\n(b) Dùng SAM trực tiếp khi cần mask linh hoạt và chất lượng cao cho từng ảnh. Nếu cần triển khai nhanh, nhẹ và xử lý nhiều ảnh, nên dùng SAM để tạo nhãn trước rồi train một YOLO26-seg nhỏ để suy luận trực tiếp.",
+    "Q7": "Keypoint R-CNN vẫn vẽ đầu gối và mắt cá nằm ngoài khung hình, vì argmax chọn vị trí có giá trị heatmap lớn nhất dù vị trí đó có thể không nằm trong vùng hợp lệ của ảnh. Điều này cho thấy argmax luôn trả về một vị trí, không đảm bảo keypoint thực sự tồn tại. Vì vậy mỗi keypoint cần có thêm điểm tin cậy để đánh giá độ chắc chắn và loại bỏ các dự đoán không đáng tin cậy.",
+    "Q8": "Từ đồ thị, người 40×80 px có OKS giảm xuống dưới 0.5 khi sai số khoảng 8–10 px, còn người 250×500 px cần sai số lớn hơn nhiều, khoảng 25–30 px mới xuống dưới 0.5. σ của mắt nhỏ hơn hông vì OKS dùng COCO_SIGMAS khác nhau cho từng keypoint, nên mắt bị phạt mạnh hơn khi lệch cùng số pixel. Với camera gắn trên cao, mỗi người chỉ cao khoảng 80 px, sai số vài pixel ở các keypoint quan trọng có thể làm OKS giảm mạnh, vì vậy cần độ chính xác keypoint cao.",
+    "Q9": "(a) Báo nhầm khi người đang cúi, ngồi hoặc đang thực hiện tư thế khiến thân nghiêng quá 60° nhưng chưa ngã. Bỏ sót khi người ngã nhưng bị che khuất, thiếu keypoint hoặc tư thế ngã không làm góc thân vượt 60°.\n\n(b) Vì xoay ảnh làm thay đổi hướng và hình dạng người so với dữ liệu mà model đã học, nên một số người khó được nhận diện hoặc keypoint không đủ tin cậy.\n\n(c) Hệ thống thực tế cần theo dõi người qua nhiều khung hình, dùng ngưỡng thời gian để xác nhận ngã, kết hợp độ tin cậy của keypoint và cơ chế cảnh báo/kiểm tra lại để giảm báo nhầm.",
+    "Q10": "Không. Nếu toàn bộ train và val đều có hổ quay sang phải thì giữ flip_idx đúng hay sai có thể không làm mAP trên val giảm, vì tập val không chứa hổ quay sang trái để bộc lộ lỗi hoán đổi keypoint.\n\nNó trở thành bug thật sự khi triển khai trên dữ liệu thực tế có cả hai hướng quay hoặc khi dùng augmentation lật ảnh. Khi đó, nếu flip_idx sai, các keypoint trái/phải sẽ bị gán nhầm, làm pose prediction sai dù mAP trên tập val ban đầu vẫn cao.",
+    "Q11": "Lỗi 1: Mô hình đôi khi đảo keypoint chân trái và chân phải, thể hiện qua 4/53 ảnh nghi bị đảo nhãn. Khắc phục bằng cách kiểm tra FLIP_IDX và tăng augmentation lật ngang.\nLỗi 2: Các keypoint ở bàn chân và khớp chân có sai số cao hơn rõ rệt, đặc biệt là các keypoint right_front_paw, left_hind_paw, right_hind_paw. Khắc phục bằng cách bổ sung dữ liệu và augmentation với nhiều tư thế chân khác nhau để mô hình học vị trí chân tốt hơn.",
+    "Q12": "Không hoàn toàn hợp lý nếu dùng cùng một σ = 1/12 cho tất cả 12 keypoint. \nMũi, đầu, gốc đuôi, bàn chân và các khớp có độ khó định vị khác nhau, nên một σ chung \nkhông phản ánh chính xác độ chính xác của từng keypoint.\n\nVới dataset custom, tôi sẽ ước lượng σ riêng cho từng keypoint dựa trên độ chính xác \nmà con người có thể gán nhãn. Có thể lấy một tập ảnh mẫu, cho nhiều người gán lại \ncùng keypoint và đo độ lệch giữa các lần gán. Keypoint nào có độ không chắc chắn lớn \nhơn sẽ có σ lớn hơn. Sau đó dùng các σ này để tính OKS thay vì dùng một giá trị chung."
+  },
+  "env": {
+    "device": "cuda",
+    "torch": "2.11.0+cu130",
+    "ultralytics": "8.4.171"
+  }
+}
